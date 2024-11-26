@@ -14,7 +14,7 @@ public class AdEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Long id;
+    private Integer id;
 
     @Column(name = "title")
     @Length(min = 8, max = 64)
@@ -26,7 +26,7 @@ public class AdEntity {
 
     @Column(name = "price")
     @Length(max = 10000000)
-    private Double price;
+    private Integer price;
 
     @Column(name = "image_file_name")
     private String imageFileName;

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.Login;
+import ru.skypro.homework.dto.UpdateUser;
 import ru.skypro.homework.entity.UserEntity;
 import ru.skypro.homework.service.UserService;
 
@@ -33,7 +34,7 @@ public class UserController {
         }
     }
     @GetMapping("/me/{id}")
-    public ResponseEntity<?> getUser(@PathVariable Long id) {
+    public ResponseEntity<?> getUser(@PathVariable Integer id) {
         String userName = userService.getUser(id);
         if(!userName.isEmpty()){
             return ResponseEntity.ok().body(userName);
@@ -42,16 +43,16 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
-    @PostMapping("/")
-    public ResponseEntity<?> updateUser(@RequestBody UserEntity user) {
-        if(userService.updateUser(user)){
+    @PostMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody UpdateUser user) {
+        if(userService.updateUser(user, id)){
             return ResponseEntity.ok().build();
         }else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
     @PostMapping("/{id}/image")
-    public void uploadImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+    public void uploadImage(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
         try {
             userService.updateProfileImage(id, file);
         }catch (IOException e){

@@ -1,25 +1,23 @@
 package ru.skypro.homework.service;
 
-import com.sun.istack.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-import ru.skypro.homework.controller.UserController;
+import ru.skypro.homework.dto.Ad;
+import ru.skypro.homework.dto.Ads;
+import ru.skypro.homework.dto.CreateOrUpdateAd;
+import ru.skypro.homework.dto.ExtendedAd;
 import ru.skypro.homework.entity.AdEntity;
-import ru.skypro.homework.entity.CommentEntity;
 import ru.skypro.homework.entity.UserEntity;
+import ru.skypro.homework.mappers.AdMapper;
 import ru.skypro.homework.repository.AdRepository;
+import ru.skypro.homework.repository.UserRepository;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -28,38 +26,35 @@ public class AdService {
 
     private final AdRepository adRepository;
     private Logger logger = LoggerFactory.getLogger(AdService.class);
+    AdMapper adMapper = new AdMapper();
+    private final UserRepository repositoryUser;
 
 
-    public AdService(AdRepository adRepository) {
+
+    public AdService(AdRepository adRepository, UserRepository repository) {
         this.adRepository = adRepository;
+        this.repositoryUser = repository;
     }
 
-    public Collection<AdEntity> getAllAd(){
-        return adRepository.findAll();
+    public Ads getAllAd(){
+        List<AdEntity> allAdEntity = adRepository.findAll();
+
+        Ads allAd = adMapper.getAllAd(allAdEntity);
+        return allAd;
+
+
     }
-    public boolean addAd(AdEntity ad, MultipartFile image){
-        Optional<AdEntity> adExisting = adRepository.findById(ad.getId());
+    public boolean addAd(Ad ad, MultipartFile image){
         try {
-            if(ad != null && image != null && !adExisting.isPresent()) {
-                AdEntity adNew = new AdEntity();
-                UserEntity user = ad.getUser();
-                adNew.setId(ad.getId());
-                adNew.setTarget(ad.getTarget());
-                adNew.setTitle(ad.getTitle());
-                adNew.setPrice(ad.getPrice());
-                adNew.setLastNameUser(user.getLastName());
-                adNew.setFirstNameUser(user.getFirstName());
-                adNew.setNameUser(user.getUserName());
-                adNew.setPhoneUser(user.getPhone());
-                adNew.setUser(user);
+            if(ad != null && image != null) {
+                AdEntity adEntity = adMapper.addAd(ad, image);
+                Optional<UserEntity> user = repositoryUser.findById(ad.getAuthor());
+                if(user.isPresent()) {
+                    adEntity.setUser(user.get());
+                    adRepository.save(adEntity);
+                    return true;
+                }
 
-
-                String fileName = Instant.now().toEpochMilli() + "_" + image.getOriginalFilename();
-                Path path = Paths.get("uploads", fileName);
-                Files.write(path, image.getBytes());
-                ad.setImageFileName(fileName);
-                adRepository.save(adNew);
-                return true;
             }
         }catch (IOException e){
             logger.error(e.getMessage());
@@ -68,15 +63,16 @@ public class AdService {
         }
         return false;
     }
-    public AdEntity getAdById(Long id){
+    public ExtendedAd getAdById(Integer id){
         Optional<AdEntity> ad = adRepository.findById(id);
         if(ad.isPresent()) {
-            return ad.get();
+            ExtendedAd extendedAd = adMapper.getExtendedAd(ad.get());
+            return extendedAd;
         }
         throw new NoSuchElementException();
     }
 
-    public AdEntity removeAd(Long id){
+    public AdEntity removeAd(Integer id){
         Optional<AdEntity> removeAd = adRepository.findById(id);
         if(removeAd.isPresent()) {
             adRepository.delete(removeAd.get());
@@ -84,28 +80,17 @@ public class AdService {
         }
         throw new NoSuchElementException();
     }
-    public AdEntity updateAd(AdEntity ad, Long id){
+    public CreateOrUpdateAd updateAd(CreateOrUpdateAd ad, Integer id){
         Optional<AdEntity> adExisting = adRepository.findById(id);
         if(adExisting.isPresent()) {
-            AdEntity adNew = new AdEntity();
-            UserEntity user = ad.getUser();
-            adNew.setId(ad.getId());
-            adNew.setTarget(ad.getTarget());
-            adNew.setTitle(ad.getTitle());
-            adNew.setPrice(ad.getPrice());
-            adNew.setImageFileName(ad.getImageFileName());
-            adNew.setLastNameUser(user.getLastName());
-            adNew.setFirstNameUser(user.getFirstName());
-            adNew.setNameUser(user.getUserName());
-            adNew.setPhoneUser(user.getPhone());
-            adNew.setUser(user);
-            adRepository.save(adNew);
-            return adNew;
+            AdEntity adEntity = adMapper.updateAd(adExisting.get(), ad);
+            adRepository.save(adEntity);
+            return ad;
         }
         throw new NoSuchElementException();
     }
 
-    public void updateImageAd(Long id, MultipartFile image){
+    public void updateImageAd(Integer id, MultipartFile image){
         AdEntity ad = adRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Объявление не найдено"));
         try {

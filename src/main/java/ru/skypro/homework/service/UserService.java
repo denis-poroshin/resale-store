@@ -8,8 +8,10 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.Login;
 import ru.skypro.homework.dto.Register;
 import ru.skypro.homework.dto.Role;
+import ru.skypro.homework.dto.UpdateUser;
 import ru.skypro.homework.entity.RoleEntity;
 import ru.skypro.homework.entity.UserEntity;
+import ru.skypro.homework.mappers.UserMapper;
 import ru.skypro.homework.repository.UserRepository;
 
 import java.io.IOException;
@@ -27,6 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder encoder;
     Pattern pattern = Pattern.compile("\\+7\\s?\\(?\\d{3}\\)?\\s?\\d{3}-?\\d{2}-?\\d{2}");
+    UserMapper userMapper = new UserMapper();
 
 
 
@@ -66,7 +69,7 @@ public class UserService {
         return true;
     }
 
-    public String getUser(Long idUser){
+    public String getUser(Integer idUser){
         Optional<UserEntity> user = userRepository.findById(idUser);
         if (user.isPresent()) {
             return user.get().getUserName();
@@ -75,28 +78,17 @@ public class UserService {
         }
 
     }
-    public boolean updateUser(UserEntity user) {
-        Optional<UserEntity> updateUser = userRepository.findById(user.getId());
-        if (updateUser.isPresent()) {
-            updateUser.get().setUserName(user.getUserName());
-            updateUser.get().setLastName(user.getLastName());
-            updateUser.get().setFirstName(user.getFirstName());
-
-
-            updateUser.get().setPassword(encoder.encode(user.getPassword()));
-
-            if(checkPhone(user.getPhone())){
-                updateUser.get().setPhone(user.getPhone());
-            }
-
-            updateUser.get().setRole(user.getRole());
-            userRepository.save(updateUser.get());
+    public boolean updateUser(UpdateUser user, Integer idUser) {
+        Optional<UserEntity> updateUser = userRepository.findById(idUser);
+        if (updateUser.isPresent() && checkPhone(user.getPhone())) {
+            UserEntity userEntity = userMapper.updateUser(user, updateUser.get());
+            userRepository.save(userEntity);
             return true;
         }else {
             throw new UsernameNotFoundException("User " + user + " not found");
         }
     }
-    public void updateProfileImage(Long userId, MultipartFile file) throws IOException {
+    public void updateProfileImage(Integer userId, MultipartFile file) throws IOException {
         if(!file.isEmpty()){
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
             Path path = Paths.get("uploads", fileName);
