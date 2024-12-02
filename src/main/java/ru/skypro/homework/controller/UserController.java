@@ -4,10 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import ru.skypro.homework.dto.Login;
 import ru.skypro.homework.dto.UpdateUser;
+
 import ru.skypro.homework.entity.UserEntity;
 import ru.skypro.homework.service.UserService;
 
@@ -25,7 +26,9 @@ public class UserController {
     }
 
 
+
     @PostMapping("/set_password")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> setPassword(@RequestBody UserEntity user) {
         if(userService.setPassword(user.getUserName(), user.getPassword())){
             return ResponseEntity.ok().build();
@@ -34,6 +37,7 @@ public class UserController {
         }
     }
     @GetMapping("/me/{id}")
+    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> getUser(@PathVariable Integer id) {
         String userName = userService.getUser(id);
         if(!userName.isEmpty()){
@@ -44,6 +48,7 @@ public class UserController {
         }
     }
     @PostMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody UpdateUser user) {
         if(userService.updateUser(user, id)){
             return ResponseEntity.ok().build();
@@ -52,6 +57,7 @@ public class UserController {
         }
     }
     @PostMapping("/{id}/image")
+    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN')")
     public void uploadImage(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
         try {
             userService.updateProfileImage(id, file);
